@@ -1,0 +1,37 @@
+{
+  "name": "ticket-booking",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Concert ticket booking system with React + TypeScript frontend and Node.js backend",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "npm run dev -w @ticket-booking/backend",
+    "dev:frontend": "npm run dev -w @ticket-booking/frontend",
+    "build": "npm run build -w @ticket-booking/shared && npm run build -w @ticket-booking/backend && npm run build -w @ticket-booking/frontend",
+    "start": "npm run start -w @ticket-booking/backend",
+    "lint": "eslint packages/*/src --ext .ts,.tsx",
+    "lint:fix": "eslint packages/*/src --ext .ts,.tsx --fix",
+    "format": "prettier --write \"packages/*/src/**/*.{ts,tsx,json,css}\"",
+    "format:check": "prettier --check \"packages/*/src/**/*.{ts,tsx,json,css}\"",
+    "test": "npm run test -w @ticket-booking/backend",
+    "db:seed": "npm run db:seed -w @ticket-booking/backend"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@typescript-eslint/eslint-plugin": "^8.48.1",
+    "@typescript-eslint/parser": "^8.48.1",
+    "concurrently": "^8.2.2",
+    "eslint": "^9.39.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "prettier": "^3.7.4",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
