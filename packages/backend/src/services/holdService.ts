@@ -8,6 +8,7 @@ import {
   TicketInventory,
   LIMITS,
 } from '@ticket-booking/shared';
+import { broadcastAvailability } from './availabilityBroadcast';
 
 /**
  * =============================================================================
@@ -233,6 +234,10 @@ export function createOrUpdateHolds(
     }
 
     if (unavailable.length > 0) {
+      // Still broadcast - availability changed due to partial holds
+      if (holdResults.length > 0) {
+        broadcastAvailability(concertId);
+      }
       return {
         success: false,
         holds: holdResults,
@@ -240,6 +245,9 @@ export function createOrUpdateHolds(
         unavailable,
       };
     }
+
+    // Broadcast availability change to all connected clients
+    broadcastAvailability(concertId);
 
     return { success: true, holds: holdResults };
   });
@@ -311,9 +319,14 @@ export function processHeartbeat(
  * Release all holds for a session and concert.
  */
 export function releaseHolds(sessionId: string, concertId: string): void {
-  db.prepare(`
+  const result = db.prepare(`
     DELETE FROM holds WHERE session_id = ? AND concert_id = ?
   `).run(sessionId, concertId);
+
+  // Broadcast if any holds were actually released
+  if (result.changes > 0) {
+    broadcastAvailability(concertId);
+  }
 }
 
 /**
@@ -328,9 +341,19 @@ export function releaseAllHolds(sessionId: string): void {
  * Called periodically by background job.
  */
 export function cleanupExpiredHolds(): number {
+  // First, get the concert IDs of expired holds so we can broadcast
+  const expiredHolds = db.prepare(`
+    SELECT DISTINCT concert_id FROM holds WHERE expires_at <= datetime('now')
+  `).all() as { concert_id: string }[];
+
   const result = db.prepare(`
     DELETE FROM holds WHERE expires_at <= datetime('now')
   `).run();
+
+  // Broadcast to all affected concerts
+  for (const hold of expiredHolds) {
+    broadcastAvailability(hold.concert_id);
+  }
 
   return result.changes;
 }

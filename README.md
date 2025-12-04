@@ -107,6 +107,38 @@ The `withTransaction()` wrapper ensures:
 3. **Release**: Purchase completes, abandonment, or timeout
 4. **Cleanup**: Background job removes expired holds every 10 seconds
 
+## Real-Time Availability (SSE)
+
+Ticket availability updates in real-time using Server-Sent Events:
+
+```
+Browser A (viewing)              Server                    Browser B (booking)
+       │                            │                            │
+       │ GET /availability/stream   │                            │
+       │───────────────────────────>│                            │
+       │ (connection stays open)    │                            │
+       │                            │                            │
+       │<─ initial inventory ───────│                            │
+       │                            │                            │
+       │                            │    POST /holds/checkout    │
+       │                            │<───────────────────────────│
+       │                            │    (2 VIP tickets held)    │
+       │                            │                            │
+       │<─ availability update ─────│                            │
+       │   (VIP: 5→3 available)     │                            │
+```
+
+**Why SSE instead of WebSockets?**
+- One-way communication (server → client only)
+- Uses standard HTTP, no protocol upgrade
+- Browser's `EventSource` API handles reconnection automatically
+- Simpler than WebSockets for this use case
+
+**Implementation:**
+- Backend: `availabilityBroadcast.ts` maintains connected clients per concert
+- Frontend: `useAvailabilityStream` hook wraps `EventSource` API
+- Events fire when holds are created, released, or expire
+
 ## API Endpoints
 
 ### Concerts
@@ -115,7 +147,7 @@ The `withTransaction()` wrapper ensures:
 |--------|----------|-------------|
 | GET | `/api/concerts` | List all concerts |
 | GET | `/api/concerts/:id` | Concert details |
-| GET | `/api/concerts/:id/availability` | Ticket availability |
+| GET | `/api/concerts/:id/availability/stream` | Real-time availability (SSE) |
 
 ### Holds
 

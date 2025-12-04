@@ -4,6 +4,7 @@ import { getConcert } from '../services/api';
 import { formatPrice, type TicketSelection, type TicketInventory, type Concert } from '@ticket-booking/shared';
 import TicketSelector from '../components/TicketSelector';
 import { useTicketStore } from '../hooks/useTicketStore';
+import { useAvailabilityStream } from '../hooks/useAvailabilityStream';
 
 export default function ConcertDetailPage(): JSX.Element {
   const { id } = useParams<{ id: string }>();
@@ -14,6 +15,12 @@ export default function ConcertDetailPage(): JSX.Element {
   const [inventory, setInventory] = useState<TicketInventory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Subscribe to real-time availability updates via SSE
+  const handleInventoryUpdate = useCallback((newInventory: TicketInventory[]) => {
+    setInventory(newInventory);
+  }, []);
+  useAvailabilityStream(id, handleInventoryUpdate);
 
   // Get selections from global store
   const selections = id ? ticketStore.getSelectionsArray(id) : [];
